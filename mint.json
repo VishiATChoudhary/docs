@@ -53,7 +53,8 @@
         "sdk/configuration",
         "sdk/detection",
         "sdk/tracking",
-        "sdk/reference"
+        "sdk/reference",
+        "sdk/agent-skills"
       ]
     },
     {

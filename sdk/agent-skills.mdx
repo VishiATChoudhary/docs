@@ -1,0 +1,49 @@
+---
+title: Agent Skills
+description: Install the Toffee skill to give AI coding agents instant knowledge of how to integrate the SDK.
+---
+
+## What are agent skills?
+
+Agent skills are packages that give AI coding agents (Claude Code, Codex, etc.) specialized knowledge. The Toffee skill teaches agents how to integrate the SDK, configure detection, and avoid common mistakes — without needing to explore the codebase.
+
+Browse the skills ecosystem at [skills.sh](https://skills.sh/).
+
+## Install the skill
+
+```bash
+npx skills add VishiATChoudhary/toffee-skills@toffee-integration -g -y
+```
+
+This installs the `toffee-integration` skill globally. It activates automatically when you mention Toffee in any Claude Code or compatible agent session.
+
+## What the skill covers
+
+- Installing via npm, script tag, or tracking pixel
+- Framework-specific setup (React, Next.js, Vue)
+- Configuration options and the `onDetection` callback
+- Custom element tracking with `data-ar-track`
+- Progressive detection timeline and risk tiers
+- Self-hosted deployment with `make setup` and `make dev`
+- Common mistakes (SSR crashes, singleton behavior, endpoint URLs)
+
+## Usage
+
+Once installed, just ask your agent:
+
+```
+Add toffee to my Next.js app
+```
+
+The agent will have the full integration guide available without needing to read source files or documentation.
+
+## Check for updates
+
+```bash
+npx skills check
+npx skills update
+```
+
+## Source
+
+The skill source is on GitHub: [VishiATChoudhary/toffee-skills](https://github.com/VishiATChoudhary/toffee-skills)
