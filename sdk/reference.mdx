@@ -1,0 +1,214 @@
+---
+title: SDK Reference
+description: Complete API reference for the Toffee JavaScript SDK.
+---
+
+## Functions
+
+### `init(config)`
+
+Initialize the Toffee SDK. Returns a `ToffeeInstance`.
+
+```typescript
+import { init } from '@toffee/sdk'
+
+const toffee = init({
+  apiKey: 'YOUR_API_KEY',
+  endpoint: 'https://api.toffee.at',
+  onDetection: (result) => console.log(result),
+})
+```
+
+**Parameters:**
+
+| Name | Type | Description |
+|---|---|---|
+| `config` | [`ToffeeConfig`](#toffeeconfig) | Configuration object |
+
+**Returns:** [`ToffeeInstance`](#toffeeinstance)
+
+---
+
+### `toffee.identify(properties)`
+
+Attach custom properties to the current session. Useful for associating detection data with your own user records.
+
+```typescript
+toffee.identify({ userId: 'user-123', plan: 'pro' })
+```
+
+**Parameters:**
+
+| Name | Type | Description |
+|---|---|---|
+| `properties` | `Record<string, string>` | Key-value pairs to attach to the session |
+
+---
+
+### `toffee.getDetection()`
+
+Get the current detection result. Returns `null` if detection hasn't run yet.
+
+```typescript
+const result = toffee.getDetection()
+if (result?.isAgent) {
+  console.log('Bot detected:', result.riskTier)
+}
+```
+
+**Returns:** [`DetectionOutput`](#detectionoutput) `| null`
+
+---
+
+### `toffee.destroy()`
+
+Tear down the SDK. Flushes pending events, removes event listeners, and cleans up timers.
+
+```typescript
+toffee.destroy()
+```
+
+Always call this in cleanup (e.g., React `useEffect` return, Vue `onUnmounted`).
+
+---
+
+### `identify(properties)`
+
+Module-level convenience function. Works the same as `toffee.identify()` but uses the most recently created instance.
+
+```typescript
+import { identify } from '@toffee/sdk'
+
+identify({ userId: 'user-123' })
+```
+
+---
+
+### `getDetection()`
+
+Module-level convenience function. Works the same as `toffee.getDetection()`.
+
+```typescript
+import { getDetection } from '@toffee/sdk'
+
+const result = getDetection()
+```
+
+---
+
+## Types
+
+### `ToffeeConfig`
+
+```typescript
+interface ToffeeConfig {
+  /** Your site API key (required) */
+  apiKey: string
+
+  /** Site ID — usually inferred from the API key */
+  siteId?: string
+
+  /** API endpoint URL. Default: '/api/v1/events' */
+  endpoint?: string
+
+  /** Called every time the detection probability updates */
+  onDetection?: (result: DetectionOutput) => void
+
+  /** Log detection info to the browser console. Default: false */
+  debug?: boolean
+}
+```
+
+### `ToffeeInstance`
+
+```typescript
+interface ToffeeInstance {
+  /** Start detection (called automatically by init) */
+  start: () => void
+
+  /** Attach custom properties to the session */
+  identify: (properties: Record<string, string>) => void
+
+  /** Get the current detection result, or null */
+  getDetection: () => DetectionOutput | null
+
+  /** Tear down listeners, flush events, clean up */
+  destroy: () => void
+}
+```
+
+### `DetectionOutput`
+
+```typescript
+interface DetectionOutput {
+  /** Legacy score (0–100) */
+  score: number
+
+  /** Calibrated probability (0.0–1.0) */
+  probability: number
+
+  /** Risk tier derived from probability */
+  riskTier: RiskTier
+
+  /** true if probability >= 0.50 */
+  isAgent: boolean
+
+  /** Per-detector results */
+  results: DetectorResult[]
+
+  /** ML model classification (when available) */
+  classification: ModelClassification
+}
+```
+
+### `RiskTier`
+
+```typescript
+type RiskTier =
+  | 'definite-bot'    // probability >= 0.95
+  | 'likely-bot'      // probability >= 0.80
+  | 'suspicious'      // probability >= 0.50
+  | 'likely-human'    // probability >= 0.20
+  | 'definite-human'  // probability < 0.20
+```
+
+### `ModelClassification`
+
+```typescript
+interface ModelClassification {
+  /** Final classification */
+  classification: 'human' | 'agent'
+
+  /** Confidence probabilities */
+  probabilities: {
+    human: number
+    agent: number
+  }
+
+  /** Whether this came from the ML model or heuristics */
+  source: 'model' | 'heuristic'
+}
+```
+
+### `DetectorResult`
+
+```typescript
+interface DetectorResult {
+  /** Which detector produced this result */
+  detector: DetectorName
+
+  /** Raw score from this detector (0–100) */
+  rawScore: number
+
+  /** Signals that fired */
+  signals: string[]
+}
+
+type DetectorName =
+  | 'user-agent'
+  | 'headless'
+  | 'automation'
+  | 'behavioral'
+  | 'navigator'
+  | 'fingerprint'
+```

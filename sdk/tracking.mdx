@@ -1,0 +1,73 @@
+---
+title: Tracking
+description: What data Toffee collects and how sessions work.
+---
+
+## Automatic events
+
+The SDK sends these events automatically:
+
+### Pageview
+
+Fired on page load and SPA route changes. Includes URL, referrer, and page title.
+
+### Detection
+
+Fired when the detection probability updates. Includes the current score, whether the visitor is classified as an agent, and the signals that contributed.
+
+### Session end
+
+Fired when the user navigates away or the tab becomes hidden (`visibilitychange` / `pagehide`). Includes:
+
+- `duration` — total session time in milliseconds
+- `pageCount` — number of pages visited
+- `interactionCount` — total interactions recorded
+
+This event triggers server-side ML classification.
+
+## Interaction tracking
+
+When enabled, the SDK tracks user interactions:
+
+- **Clicks** — element tag, text content, CSS selector, coordinates, whether the event was trusted (user-initiated vs. programmatic)
+- **Scroll** — depth percentage milestones
+- **Input** — form field interactions (no values are captured, only the selector and timing)
+
+### Element-level tracking
+
+Add the `data-toffee-track` attribute to any element for named event tracking:
+
+```html
+<button data-toffee-track="signup-cta">Sign Up</button>
+```
+
+Interactions with tracked elements appear in the dashboard with their label, so you can see which elements agents interact with.
+
+## Sessions
+
+- A **session ID** is generated when the SDK initializes — a random identifier stored in `sessionStorage`
+- The session persists across page navigations within the same tab
+- A new session starts when a new tab is opened or `sessionStorage` is cleared
+- All events within a session share the same session ID
+
+## Identifying users
+
+Attach custom properties to a session for filtering in the dashboard:
+
+```typescript
+toffee.identify({
+  userId: 'user-123',
+  plan: 'pro',
+  email: 'user@example.com',
+})
+```
+
+These properties are associated with the session and visible in the visitors/session views.
+
+## Event batching
+
+Events are buffered and sent in batches to the ingestion endpoint. The buffer is flushed:
+
+- Periodically (on a timer)
+- On `session_end` / page unload
+- When the buffer reaches a size threshold

@@ -1,0 +1,89 @@
+---
+title: Detection
+description: How Toffee detects bots, AI agents, and automation.
+---
+
+## Overview
+
+Toffee classifies every visitor as either **human** or **agent**. It does this through two complementary systems:
+
+1. **Client-side heuristics** — 6 detector categories run in the browser
+2. **Server-side ML model** — a SAINT classifier that runs on accumulated behavioral data when the session ends
+
+Both systems produce a probability. The final classification uses whichever system has the most data available.
+
+## Detectors
+
+The SDK runs 6 categories of client-side checks:
+
+| Category | What it looks for |
+|---|---|
+| **User-Agent** | Known bot/agent patterns in the user-agent string |
+| **Headless** | Signals that indicate a headless browser (missing plugins, permissions quirks, etc.) |
+| **Automation** | Automation frameworks like Puppeteer, Playwright, Selenium, Cypress |
+| **Navigator** | Inconsistencies in navigator properties (Client Hints mismatches, unusual hardware values) |
+| **Fingerprint** | Browser fingerprint anomalies (WebGL renderer, canvas behavior, extension count) |
+| **Behavioral** | Mouse movement patterns, click behavior, scroll patterns, keystroke dynamics |
+
+Each detector contributes evidence that is combined using **Bayesian fusion** — a probabilistic method that produces a calibrated probability (0.0–1.0) rather than an arbitrary weighted score.
+
+## Progressive scoring
+
+Detection isn't a one-shot check. The SDK scores progressively as more signals become available:
+
+| Phase | When | What happens |
+|---|---|---|
+| **Instant** | Page load (t=0) | User-agent, headless, automation, navigator, fingerprint checks |
+| **Early** | ~3 seconds | First behavioral signals (mouse movement, scrolling) |
+| **Session** | ~10 seconds | Richer behavioral patterns emerge |
+| **Extended** | ~30 seconds | High-confidence behavioral analysis |
+| **Continuous** | Every ~15 seconds | Ongoing rescoring as new events arrive |
+| **Interaction** | On click/scroll | Immediate rescore after user interactions |
+
+Early phases catch obvious bots (headless browsers, known automation). Later phases catch sophisticated agents that mimic human behavior.
+
+## ML classification
+
+When a session ends, the server extracts 4 behavioral features from the session's event stream and runs them through a SAINT classifier. The model returns a **human** or **agent** classification with confidence probabilities.
+
+The ML classification is the final word when available — it has access to the full session of behavioral data, not just what was visible at any single point in time.
+
+## Risk tiers
+
+Every detection result includes a `riskTier` based on the probability:
+
+| Risk Tier | Probability | Interpretation |
+|---|---|---|
+| `definite-bot` | ≥ 0.95 | Almost certainly automated |
+| `likely-bot` | ≥ 0.80 | High confidence non-human |
+| `suspicious` | ≥ 0.50 | Could go either way |
+| `likely-human` | ≥ 0.20 | Probably human |
+| `definite-human` | < 0.20 | Almost certainly human |
+
+## Recommended actions
+
+| Risk Tier | Suggested action |
+|---|---|
+| `definite-bot` / `likely-bot` | Block, challenge (CAPTCHA), or rate-limit |
+| `suspicious` | Soft challenge, log for review |
+| `likely-human` / `definite-human` | Allow through |
+
+```typescript
+const toffee = init({
+  apiKey: 'YOUR_API_KEY',
+  endpoint: 'https://api.toffee.at',
+  onDetection: (result) => {
+    switch (result.riskTier) {
+      case 'definite-bot':
+      case 'likely-bot':
+        blockOrChallenge()
+        break
+      case 'suspicious':
+        showCaptcha()
+        break
+      default:
+        // allow through
+    }
+  },
+})
+```

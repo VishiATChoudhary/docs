@@ -1,0 +1,81 @@
+---
+title: API Overview
+description: Authentication, base URL, and common patterns for the Toffee API.
+---
+
+## Base URL
+
+```
+https://api.toffee.at
+```
+
+All endpoints are prefixed with `/api/v1`.
+
+## Authentication
+
+The API uses two authentication methods depending on the endpoint:
+
+### Session auth (dashboard)
+
+Used by the dashboard and any integration that manages teams, sites, and analytics. Authenticates via session cookies set by the `/api/auth/*` endpoints (powered by BetterAuth).
+
+All team-scoped endpoints (`/api/v1/teams/:teamSlug/...`) require session auth plus team membership.
+
+### API key auth (SDK ingestion)
+
+Used by the SDK to send events. Pass the API key as a header:
+
+```
+X-Api-Key: ar_YOUR_API_KEY
+```
+
+Or as a query parameter:
+
+```
+?apiKey=ar_YOUR_API_KEY
+```
+
+API keys are created per-site and can be revoked from the dashboard.
+
+## Common patterns
+
+### Team-scoped routes
+
+Most endpoints are scoped to a team via the URL:
+
+```
+/api/v1/teams/:teamSlug/sites/:siteId/...
+```
+
+Your session must have membership in the team. Some operations (update/delete team, manage roles) require owner or admin role.
+
+### Error responses
+
+Errors return JSON with a `message` field:
+
+```json
+{
+  "error": "not_found",
+  "message": "Site not found"
+}
+```
+
+Common status codes:
+
+| Code | Meaning |
+|---|---|
+| `400` | Bad request — missing or invalid parameters |
+| `401` | Unauthorized — missing or invalid auth |
+| `403` | Forbidden — insufficient permissions |
+| `404` | Not found |
+| `500` | Server error |
+
+### Analytics time ranges
+
+Analytics endpoints accept a `range` query parameter — the number of hours to include (default: `24`):
+
+```
+GET /api/v1/teams/:teamSlug/analytics/:siteId/stats?range=168
+```
+
+This returns data for the last 7 days.

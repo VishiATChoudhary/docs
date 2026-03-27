@@ -1,0 +1,69 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "Toffee",
+  "logo": {
+    "dark": "/logo/dark.svg",
+    "light": "/logo/light.svg"
+  },
+  "favicon": "/favicon.svg",
+  "colors": {
+    "primary": "#5A5ED3",
+    "light": "#7275E0",
+    "dark": "#5A5ED3",
+    "anchors": {
+      "from": "#5A5ED3",
+      "to": "#7275E0"
+    }
+  },
+  "topbarLinks": [
+    {
+      "name": "Support",
+      "url": "mailto:support@toffee.at"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Dashboard",
+    "url": "https://db.toffee.at"
+  },
+  "tabs": [
+    {
+      "name": "API Reference",
+      "url": "api"
+    }
+  ],
+  "anchors": [
+    {
+      "name": "GitHub",
+      "icon": "github",
+      "url": "https://github.com/VishiATChoudhary"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "Getting Started",
+      "pages": [
+        "introduction",
+        "quickstart"
+      ]
+    },
+    {
+      "group": "SDK",
+      "pages": [
+        "sdk/installation",
+        "sdk/configuration",
+        "sdk/detection",
+        "sdk/tracking",
+        "sdk/reference"
+      ]
+    },
+    {
+      "group": "API Reference",
+      "pages": [
+        "api/overview"
+      ]
+    }
+  ],
+  "footerSocials": {
+    "github": "https://github.com/VishiATChoudhary"
+  }
+}

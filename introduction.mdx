@@ -1,0 +1,38 @@
+---
+title: Introduction
+description: Detect bots, AI agents, and automation on your website in real-time.
+---
+
+# What is Toffee?
+
+Toffee is a lightweight JavaScript SDK that detects non-human visitors on your website. It identifies bots, AI agents, scrapers, and automation tools — and tells you about them in real-time.
+
+## How it works
+
+1. **Client-side detection** — The SDK runs 6 categories of checks in the browser: user-agent analysis, headless browser detection, automation framework detection, navigator inconsistencies, browser fingerprint anomalies, and behavioral analysis.
+
+2. **Bayesian fusion** — Signals from all detectors are combined using Bayesian probability, producing a calibrated probability (0.0–1.0) rather than an arbitrary score.
+
+3. **ML classification** — When a session ends, the server runs a machine learning model on accumulated behavioral features to produce a final classification: **human** or **agent**.
+
+4. **Progressive confidence** — Detection starts immediately on page load and improves over time as more signals are observed. The SDK continuously rescores as new behavioral data comes in.
+
+## What you get
+
+- **Real-time detection** with a probability-based risk tier system (definite-bot → definite-human)
+- **Agent vs. human classification** powered by both heuristics and ML
+- **A dashboard** for viewing traffic, agent breakdowns, page analytics, and individual sessions
+- **A full API** for building custom integrations on top of the detection data
+- **A tracking pixel** for detecting non-JS visitors (curl, CLI tools, bots that don't execute JavaScript)
+
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Get Toffee running on your site in 2 minutes.
+  </Card>
+  <Card title="SDK Reference" icon="code" href="/sdk/reference">
+    Full API reference for the JavaScript SDK.
+  </Card>
+</CardGroup>

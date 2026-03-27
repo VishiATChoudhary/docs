@@ -1,0 +1,952 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Toffee API",
+    "description": "API for managing teams, sites, and querying analytics data from the Toffee bot detection platform.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.toffee.at",
+      "description": "Production"
+    }
+  ],
+  "security": [
+    { "sessionAuth": [] }
+  ],
+  "paths": {
+    "/api/v1/teams": {
+      "get": {
+        "operationId": "listTeams",
+        "summary": "List teams",
+        "description": "List all teams the authenticated user is a member of.",
+        "tags": ["Teams"],
+        "responses": {
+          "200": {
+            "description": "List of teams",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "teams": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Team" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createTeam",
+        "summary": "Create team",
+        "description": "Create a new team. The authenticated user becomes the owner.",
+        "tags": ["Teams"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "slug"],
+                "properties": {
+                  "name": { "type": "string", "description": "Display name" },
+                  "slug": { "type": "string", "description": "URL slug (1-38 chars, lowercase alphanumeric + hyphens)", "pattern": "^[a-z0-9][a-z0-9-]{0,36}[a-z0-9]$" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Team created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "team": { "$ref": "#/components/schemas/Team" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/teams/{teamSlug}": {
+      "get": {
+        "operationId": "getTeam",
+        "summary": "Get team",
+        "description": "Get team details including your membership role.",
+        "tags": ["Teams"],
+        "parameters": [
+          { "$ref": "#/components/parameters/teamSlug" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Team details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "team": {
+                      "allOf": [
+                        { "$ref": "#/components/schemas/Team" },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "memberRole": { "type": "string" }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateTeam",
+        "summary": "Update team",
+        "description": "Update team name or slug. Requires owner role.",
+        "tags": ["Teams"],
+        "parameters": [
+          { "$ref": "#/components/parameters/teamSlug" }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "slug": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Team updated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OkResponse" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteTeam",
+        "summary": "Delete team",
+        "description": "Delete a team and all associated data. Requires owner role.",
+        "tags": ["Teams"],
+        "parameters": [
+          { "$ref": "#/components/parameters/teamSlug" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Team deleted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OkResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/teams/{teamSlug}/members": {
+      "get": {
+        "operationId": "listMembers",
+        "summary": "List members",
+        "description": "List all members of a team.",
+        "tags": ["Teams"],
+        "parameters": [
+          { "$ref": "#/components/parameters/teamSlug" }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of members",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "members": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Member" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "addMember",
+        "summary": "Add member",
+        "description": "Invite a user to the team by email. Requires owner or admin role.",
+        "tags": ["Teams"],
+        "parameters": [
+          { "$ref": "#/components/parameters/teamSlug" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email"],
+                "properties": {
+                  "email": { "type": "string", "format": "email" },
+                  "role": { "type": "string", "default": "member" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Member added",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OkResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/teams/{teamSlug}/members/{userId}": {
+      "patch": {
+        "operationId": "updateMember",
+        "summary": "Update member role",
+        "description": "Change a member's role. Requires owner role.",
+        "tags": ["Teams"],
+        "parameters": [
+          { "$ref": "#/components/parameters/teamSlug" },
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["role"],
+                "properties": {
+                  "role": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Role updated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OkResponse" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "removeMember",
+        "summary": "Remove member",
+        "description": "Remove a member from the team. Requires owner or admin role.",
+        "tags": ["Teams"],
+        "parameters": [
+          { "$ref": "#/components/parameters/teamSlug" },
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Member removed",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OkResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/teams/{teamSlug}/sites": {
+      "get": {
+        "operationId": "listSites",
+        "summary": "List sites",
+        "description": "List all sites in a team.",
+        "tags": ["Sites"],
+        "parameters": [
+          { "$ref": "#/components/parameters/teamSlug" }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of sites",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sites": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Site" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createSite",
+        "summary": "Create site",
+        "description": "Create a new site in a team. Returns the site and a new API key.",
+        "tags": ["Sites"],
+        "parameters": [
+          { "$ref": "#/components/parameters/teamSlug" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "domain": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Site created with API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "site": { "$ref": "#/components/schemas/Site" },
+                    "apiKey": { "type": "string", "description": "Full API key — save immediately, shown only once" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/teams/{teamSlug}/sites/{siteId}": {
+      "get": {
+        "operationId": "getSite",
+        "summary": "Get site",
+        "description": "Get site details.",
+        "tags": ["Sites"],
+        "parameters": [
+          { "$ref": "#/components/parameters/teamSlug" },
+          { "$ref": "#/components/parameters/siteId" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Site details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "site": { "$ref": "#/components/schemas/Site" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateSite",
+        "summary": "Update site",
+        "description": "Update site name or domain.",
+        "tags": ["Sites"],
+        "parameters": [
+          { "$ref": "#/components/parameters/teamSlug" },
+          { "$ref": "#/components/parameters/siteId" }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "domain": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Site updated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OkResponse" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteSite",
+        "summary": "Delete site",
+        "description": "Delete a site and all associated data.",
+        "tags": ["Sites"],
+        "parameters": [
+          { "$ref": "#/components/parameters/teamSlug" },
+          { "$ref": "#/components/parameters/siteId" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Site deleted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OkResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/teams/{teamSlug}/sites/{siteId}/keys": {
+      "get": {
+        "operationId": "listKeys",
+        "summary": "List API keys",
+        "description": "List all API keys for a site. Only the prefix is returned, not the full key.",
+        "tags": ["Sites"],
+        "parameters": [
+          { "$ref": "#/components/parameters/teamSlug" },
+          { "$ref": "#/components/parameters/siteId" }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of API keys",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "keys": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/ApiKey" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createKey",
+        "summary": "Create API key",
+        "description": "Create a new API key for a site. The full key is returned only once.",
+        "tags": ["Sites"],
+        "parameters": [
+          { "$ref": "#/components/parameters/teamSlug" },
+          { "$ref": "#/components/parameters/siteId" }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "label": { "type": "string", "description": "Optional label for this key" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "API key created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "key": { "type": "string", "description": "Full API key — save immediately" },
+                    "prefix": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/teams/{teamSlug}/sites/{siteId}/keys/{keyId}": {
+      "delete": {
+        "operationId": "revokeKey",
+        "summary": "Revoke API key",
+        "description": "Revoke an API key. The SDK will no longer be able to send events with this key.",
+        "tags": ["Sites"],
+        "parameters": [
+          { "$ref": "#/components/parameters/teamSlug" },
+          { "$ref": "#/components/parameters/siteId" },
+          { "name": "keyId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Key revoked",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OkResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/events": {
+      "post": {
+        "operationId": "ingestEvents",
+        "summary": "Ingest events",
+        "description": "Send a batch of events from the SDK. Authenticated via API key.",
+        "tags": ["Events"],
+        "security": [{ "apiKeyHeader": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["events"],
+                "properties": {
+                  "sessionId": { "type": "string", "description": "Session ID (can also be per-event)" },
+                  "events": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["type", "timestamp"],
+                      "properties": {
+                        "sessionId": { "type": "string" },
+                        "type": { "type": "string", "enum": ["pageview", "detection", "interaction", "session_end"] },
+                        "timestamp": { "type": "number" },
+                        "url": { "type": "string" },
+                        "payload": { "type": "object" },
+                        "features": {
+                          "type": "object",
+                          "description": "Behavioral features for ML classification",
+                          "properties": {
+                            "action_burst_ratio": { "type": "number" },
+                            "click_duration_std": { "type": "number" },
+                            "inter_event_entropy": { "type": "number" },
+                            "mouse_teleportation": { "type": "number" }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Events accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "accepted": { "type": "integer" },
+                    "classifications": {
+                      "type": "object",
+                      "description": "ML classifications keyed by event index",
+                      "additionalProperties": {
+                        "$ref": "#/components/schemas/Classification"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pixel": {
+      "get": {
+        "operationId": "trackPixel",
+        "summary": "Tracking pixel",
+        "description": "Returns a 1x1 transparent GIF and records a pageview. For non-JS environments (curl, bots, server-side).",
+        "tags": ["Events"],
+        "security": [{ "apiKeyQuery": [] }],
+        "parameters": [
+          { "name": "k", "in": "query", "required": true, "schema": { "type": "string" }, "description": "API key" },
+          { "name": "url", "in": "query", "schema": { "type": "string" }, "description": "Page URL (falls back to Referer header)" }
+        ],
+        "responses": {
+          "200": {
+            "description": "1x1 transparent GIF",
+            "content": {
+              "image/gif": {
+                "schema": { "type": "string", "format": "binary" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/teams/{teamSlug}/analytics/{siteId}/stats": {
+      "get": {
+        "operationId": "getStats",
+        "summary": "Get stats",
+        "description": "Get aggregate stats for a site including total visits, agent percentage, and top pages.",
+        "tags": ["Analytics"],
+        "parameters": [
+          { "$ref": "#/components/parameters/teamSlug" },
+          { "$ref": "#/components/parameters/siteId" },
+          { "$ref": "#/components/parameters/range" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Site stats",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/teams/{teamSlug}/analytics/{siteId}/agents": {
+      "get": {
+        "operationId": "listAgents",
+        "summary": "List detected agents",
+        "description": "List all detected agents for a site within the time range.",
+        "tags": ["Analytics"],
+        "parameters": [
+          { "$ref": "#/components/parameters/teamSlug" },
+          { "$ref": "#/components/parameters/siteId" },
+          { "$ref": "#/components/parameters/range" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Agent list",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/teams/{teamSlug}/analytics/{siteId}/pages": {
+      "get": {
+        "operationId": "getPages",
+        "summary": "Get page analytics",
+        "description": "Get per-page visit counts and agent breakdowns.",
+        "tags": ["Analytics"],
+        "parameters": [
+          { "$ref": "#/components/parameters/teamSlug" },
+          { "$ref": "#/components/parameters/siteId" },
+          { "$ref": "#/components/parameters/range" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page analytics",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/teams/{teamSlug}/analytics/{siteId}/elements": {
+      "get": {
+        "operationId": "getElements",
+        "summary": "Get element interactions",
+        "description": "Get interaction data for tracked elements on a specific page.",
+        "tags": ["Analytics"],
+        "parameters": [
+          { "$ref": "#/components/parameters/teamSlug" },
+          { "$ref": "#/components/parameters/siteId" },
+          { "name": "page", "in": "query", "required": true, "schema": { "type": "string" }, "description": "Page URL to filter by" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Element interaction data",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/teams/{teamSlug}/analytics/{siteId}/visitors": {
+      "get": {
+        "operationId": "listVisitors",
+        "summary": "List visitors",
+        "description": "List all visitor sessions for a site within the time range.",
+        "tags": ["Analytics"],
+        "parameters": [
+          { "$ref": "#/components/parameters/teamSlug" },
+          { "$ref": "#/components/parameters/siteId" },
+          { "$ref": "#/components/parameters/range" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Visitor list",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/teams/{teamSlug}/analytics/{siteId}/session/{sessionId}": {
+      "get": {
+        "operationId": "getSession",
+        "summary": "Get session events",
+        "description": "Get all events for a specific session.",
+        "tags": ["Analytics"],
+        "parameters": [
+          { "$ref": "#/components/parameters/teamSlug" },
+          { "$ref": "#/components/parameters/siteId" },
+          { "name": "sessionId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Session events",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/live": {
+      "get": {
+        "operationId": "liveEvents",
+        "summary": "Live event stream",
+        "description": "Server-Sent Events stream of real-time visitor activity. Connect with an EventSource client.",
+        "tags": ["Real-Time"],
+        "parameters": [
+          { "name": "siteId", "in": "query", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "SSE stream",
+            "content": {
+              "text/event-stream": {
+                "schema": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/healthz": {
+      "get": {
+        "operationId": "healthz",
+        "summary": "Health check",
+        "description": "Basic health check. Returns 200 if the server is running.",
+        "tags": ["Health"],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "ok" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/readyz": {
+      "get": {
+        "operationId": "readyz",
+        "summary": "Readiness check",
+        "description": "Readiness check. Returns 200 if the server is running and the database is connected.",
+        "tags": ["Health"],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Ready",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "ok" }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Not ready",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "error" },
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "sessionAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "session",
+        "description": "Session cookie from /api/auth/* endpoints"
+      },
+      "apiKeyHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Api-Key",
+        "description": "Site API key (ar_...)"
+      },
+      "apiKeyQuery": {
+        "type": "apiKey",
+        "in": "query",
+        "name": "k",
+        "description": "Site API key passed as query parameter"
+      }
+    },
+    "parameters": {
+      "teamSlug": {
+        "name": "teamSlug",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string" },
+        "description": "Team URL slug"
+      },
+      "siteId": {
+        "name": "siteId",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string" },
+        "description": "Site ID"
+      },
+      "range": {
+        "name": "range",
+        "in": "query",
+        "schema": { "type": "integer", "default": 24 },
+        "description": "Number of hours to include (default: 24)"
+      }
+    },
+    "schemas": {
+      "Team": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "slug": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Member": {
+        "type": "object",
+        "properties": {
+          "userId": { "type": "string" },
+          "email": { "type": "string" },
+          "name": { "type": "string" },
+          "role": { "type": "string" },
+          "joinedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Site": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "domain": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ApiKey": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "prefix": { "type": "string", "description": "First 10 characters of the key" },
+          "label": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "revokedAt": { "type": "string", "format": "date-time", "nullable": true }
+        }
+      },
+      "Classification": {
+        "type": "object",
+        "properties": {
+          "classification": { "type": "string", "enum": ["human", "agent"] },
+          "probabilities": {
+            "type": "object",
+            "properties": {
+              "human": { "type": "number" },
+              "agent": { "type": "number" }
+            }
+          },
+          "source": { "type": "string", "enum": ["model", "heuristic"] }
+        }
+      },
+      "OkResponse": {
+        "type": "object",
+        "properties": {
+          "ok": { "type": "boolean", "example": true }
+        }
+      }
+    }
+  },
+  "tags": [
+    { "name": "Teams", "description": "Manage teams and members" },
+    { "name": "Sites", "description": "Manage sites and API keys" },
+    { "name": "Events", "description": "Event ingestion and tracking pixel" },
+    { "name": "Analytics", "description": "Query detection and traffic data" },
+    { "name": "Real-Time", "description": "Live event streaming via SSE" },
+    { "name": "Health", "description": "Server health and readiness checks" }
+  ]
+}

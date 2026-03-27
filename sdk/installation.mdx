@@ -1,0 +1,119 @@
+---
+title: Installation
+description: Add Toffee to your site via script tag, npm, or tracking pixel.
+---
+
+## Script tag
+
+The simplest way to add Toffee. Drop this before `</body>`:
+
+```html
+<script
+  src="https://cdn.toffee.at/sdk.js"
+  data-api-key="YOUR_API_KEY"
+></script>
+```
+
+The SDK auto-initializes and starts detecting immediately.
+
+## npm
+
+```bash
+npm install @toffee/sdk
+```
+
+Then initialize in your application code:
+
+```typescript
+import { init } from '@toffee/sdk'
+
+const toffee = init({
+  apiKey: 'YOUR_API_KEY',
+  endpoint: 'https://api.toffee.at',
+})
+```
+
+### React
+
+```tsx
+import { useEffect } from 'react'
+import { init } from '@toffee/sdk'
+
+function App() {
+  useEffect(() => {
+    const toffee = init({
+      apiKey: 'YOUR_API_KEY',
+      endpoint: 'https://api.toffee.at',
+    })
+
+    return () => toffee.destroy()
+  }, [])
+
+  return <div>{/* your app */}</div>
+}
+```
+
+### Next.js
+
+```tsx
+// app/layout.tsx
+'use client'
+
+import { useEffect } from 'react'
+import { init } from '@toffee/sdk'
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  useEffect(() => {
+    const toffee = init({
+      apiKey: 'YOUR_API_KEY',
+      endpoint: 'https://api.toffee.at',
+    })
+
+    return () => toffee.destroy()
+  }, [])
+
+  return (
+    <html>
+      <body>{children}</body>
+    </html>
+  )
+}
+```
+
+### Vue
+
+```vue
+<script setup>
+import { onMounted, onUnmounted } from 'vue'
+import { init } from '@toffee/sdk'
+
+let toffee
+
+onMounted(() => {
+  toffee = init({
+    apiKey: 'YOUR_API_KEY',
+    endpoint: 'https://api.toffee.at',
+  })
+})
+
+onUnmounted(() => {
+  toffee?.destroy()
+})
+</script>
+```
+
+## Tracking pixel
+
+For environments where JavaScript doesn't execute (curl, CLI tools, server-side rendering), use the tracking pixel:
+
+```html
+<img src="https://api.toffee.at/api/v1/pixel?k=YOUR_API_KEY" width="1" height="1" />
+```
+
+Or request it directly:
+
+```bash
+curl "https://api.toffee.at/api/v1/pixel?k=YOUR_API_KEY&url=https://example.com/page"
+```
+
+The pixel returns a 1x1 transparent GIF and records a pageview event with detection based on the request headers.

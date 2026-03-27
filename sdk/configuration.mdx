@@ -1,0 +1,50 @@
+---
+title: Configuration
+description: All configuration options for the Toffee SDK.
+---
+
+## Config options
+
+Pass these to `init()`:
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `apiKey` | `string` | **required** | Your site API key |
+| `siteId` | `string` | — | Site ID (usually inferred from API key) |
+| `endpoint` | `string` | `'/api/v1/events'` | API endpoint URL |
+| `onDetection` | `(result: DetectionOutput) => void` | — | Callback fired on every detection update |
+| `debug` | `boolean` | `false` | Log detection info to console |
+
+## Detection callback
+
+The `onDetection` callback fires every time the detection probability updates — which happens progressively as the SDK gathers more signals.
+
+```typescript
+const toffee = init({
+  apiKey: 'YOUR_API_KEY',
+  endpoint: 'https://api.toffee.at',
+  onDetection: (result) => {
+    console.log(result.riskTier)     // 'definite-human', 'suspicious', 'likely-bot', etc.
+    console.log(result.probability)  // 0.0 – 1.0
+    console.log(result.isAgent)      // true if probability >= 0.50
+
+    if (result.riskTier === 'likely-bot' || result.riskTier === 'definite-bot') {
+      // show captcha, block form submission, rate-limit, etc.
+    }
+  },
+})
+```
+
+The callback receives a [`DetectionOutput`](/sdk/reference#detectionoutput) object. See the [detection page](/sdk/detection) for how risk tiers work and the [reference](/sdk/reference) for the full type definition.
+
+## Debug mode
+
+Enable `debug: true` to log detection results to the browser console. Useful during integration:
+
+```typescript
+const toffee = init({
+  apiKey: 'YOUR_API_KEY',
+  endpoint: 'https://api.toffee.at',
+  debug: true,
+})
+```
