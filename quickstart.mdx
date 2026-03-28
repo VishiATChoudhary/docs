@@ -3,28 +3,101 @@ title: Quickstart
 description: Get Toffee running on your site in 2 minutes.
 ---
 
-## 1. Create a site
+<Tabs>
+  <Tab title="Existing Project">
+    ## 1. Create a site
 
-Sign up at [db.toffee.at](https://db.toffee.at), create a team, and add a site. You'll get an API key that looks like `ar_a1b2c3...`.
+    Sign up at [db.toffee.at](https://db.toffee.at), create a team, and add a site. You'll get an API key that starts with `ar_`.
 
-<Warning>Save your API key immediately. It is shown only once and cannot be retrieved later.</Warning>
+    <Warning>Save your API key immediately. It is shown only once and cannot be retrieved later.</Warning>
 
-## 2. Add the SDK
+    ## 2. Install the SDK
 
-Drop this script tag into your HTML, before the closing `</body>` tag:
+    ```bash
+    npm install @agent-radar/sdk
+    ```
 
-```html
-<script
-  src="https://cdn.toffee.at/sdk.js"
-  data-api-key="YOUR_API_KEY"
-></script>
-```
+    ## 3. Initialize
 
-That's it. The SDK will start detecting visitors immediately.
+    **React / Next.js (App Router):**
 
-## 3. View your dashboard
+    ```tsx
+    'use client';
+    import { useEffect, useRef } from 'react';
+    import { init } from '@agent-radar/sdk';
 
-Open your dashboard at [db.toffee.at](https://db.toffee.at). Visit your site in another browser tab. You should see the visit appear within seconds.
+    export function ToffeeProvider() {
+      const initialized = useRef(false);
+      useEffect(() => {
+        if (initialized.current) return;
+        initialized.current = true;
+        const toffee = init({
+          siteId: 'YOUR_SITE_ID',
+          apiKey: 'ar_YOUR_KEY',
+          endpoint: 'https://api.toffee.at/api/v1/events',
+          onDetection: (result) => {
+            console.log(result.classification.classification); // 'human' | 'bot' | 'agent'
+            console.log(result.riskTier);
+            console.log(result.probability);
+          },
+        });
+        return () => { toffee.destroy(); initialized.current = false; };
+      }, []);
+      return null;
+    }
+    ```
+
+    Mount in your root layout:
+
+    ```tsx
+    // app/layout.tsx
+    <body>{children}<ToffeeProvider /></body>
+    ```
+
+    **Vue:**
+
+    ```vue
+    <script setup>
+    import { onMounted, onUnmounted } from 'vue';
+    import { init } from '@agent-radar/sdk';
+    let toffee;
+    onMounted(() => { toffee = init({ siteId: '...', apiKey: 'ar_...', endpoint: '...' }); });
+    onUnmounted(() => toffee?.destroy());
+    </script>
+    ```
+
+    **Script tag:**
+
+    ```html
+    <script src="https://cdn.toffee.at/sdk.js"></script>
+    <script>
+      AgentRadar.init({ siteId: '...', apiKey: 'ar_...', endpoint: '...' });
+    </script>
+    ```
+
+    ## 4. View your dashboard
+
+    Open your dashboard at [db.toffee.at](https://db.toffee.at). Visit your site in another tab — you should see the visit appear within seconds.
+  </Tab>
+
+  <Tab title="Agent Skill">
+    Install the Toffee agent skill to let your AI coding agent handle integration for you:
+
+    ```bash
+    npx skills add VishiATChoudhary/toffee-skills@toffee-integration
+    ```
+
+    Or install globally:
+
+    ```bash
+    npx skills add VishiATChoudhary/toffee-skills@toffee-integration -g -y
+    ```
+
+    Once installed, your agent can guide you through the full setup — npm install, framework-specific initialization, tracking pixel, element tracking, and common mistakes.
+
+    Learn more at [skills.sh](https://skills.sh).
+  </Tab>
+</Tabs>
 
 ## Next steps
 
