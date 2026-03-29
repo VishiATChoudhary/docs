@@ -13,14 +13,14 @@ Toffee is a lightweight JavaScript SDK that detects non-human visitors on your w
 
 2. **Bayesian fusion** — Signals from all detectors are combined using Bayesian probability, producing a calibrated probability (0.0–1.0) rather than an arbitrary score.
 
-3. **ML classification** — When a session ends, the server runs a machine learning model on accumulated behavioral features to produce a final classification: **human** or **agent**.
+3. **ML classification** — When a session ends, the server runs a machine learning model on accumulated behavioral features to produce a final three-class classification: **human**, **bot**, or **agent**.
 
 4. **Progressive confidence** — Detection starts immediately on page load and improves over time as more signals are observed. The SDK continuously rescores as new behavioral data comes in.
 
 ## What you get
 
-- **Real-time detection** with a probability-based risk tier system (definite-bot → definite-human)
-- **Agent vs. human classification** powered by both heuristics and ML
+- **Real-time detection** with a probability-based risk tier system (definite-bot → suspicious → definite-human)
+- **Three-class classification** (human, bot, or agent) powered by both heuristics and ML
 - **A dashboard** for viewing traffic, agent breakdowns, page analytics, and individual sessions
 - **A full API** for building custom integrations on top of the detection data
 - **A tracking pixel** for detecting non-JS visitors (curl, CLI tools, bots that don't execute JavaScript)
