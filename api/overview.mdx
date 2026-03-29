@@ -37,6 +37,28 @@ Or as a query parameter:
 
 API keys are created per-site and can be revoked from the dashboard.
 
+## Endpoints
+
+### Public (no auth)
+
+| Method | Route | Description |
+|---|---|---|
+| `POST` | `/api/v1/waitlist` | Join waitlist (rate-limited: 3 req/15min per IP) |
+| `GET` | `/api/v1/pixel` | Tracking pixel for non-JS clients (API key via `k` query param) |
+
+### SDK / API key auth (`X-Api-Key` header)
+
+| Method | Route | Description |
+|---|---|---|
+| `POST` | `/api/v1/events` | Ingest events (detections, pageviews, session_end) |
+| `GET` | `/api/v1/stats` | Site statistics (agent/human counts, detection rate) |
+| `GET` | `/api/v1/agents` | List detected agents |
+| `GET` | `/api/v1/pages` | Page-level statistics |
+| `GET` | `/api/v1/elements` | Element clicks (requires `page` query param) |
+| `GET` | `/api/v1/visitors` | Visitor analytics |
+| `GET` | `/api/v1/session/:sessionId` | Events for a specific session |
+| `GET` | `/api/v1/live` | SSE stream for real-time updates (requires `siteId`) |
+
 ## Common patterns
 
 ### Team-scoped routes
