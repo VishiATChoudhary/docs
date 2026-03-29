@@ -922,11 +922,12 @@
       "Classification": {
         "type": "object",
         "properties": {
-          "classification": { "type": "string", "enum": ["human", "agent"] },
+          "classification": { "type": "string", "enum": ["human", "bot", "agent"] },
           "probabilities": {
             "type": "object",
             "properties": {
               "human": { "type": "number" },
+              "bot": { "type": "number" },
               "agent": { "type": "number" }
             }
           },

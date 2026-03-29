@@ -177,11 +177,12 @@ type RiskTier =
 ```typescript
 interface ModelClassification {
   /** Final classification */
-  classification: 'human' | 'agent'
+  classification: 'human' | 'bot' | 'agent'
 
   /** Confidence probabilities */
   probabilities: {
     human: number
+    bot: number
     agent: number
   }
 
