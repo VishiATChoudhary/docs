@@ -31,7 +31,7 @@
                   "properties": {
                     "teams": {
                       "type": "array",
-                      "items": { "$ref": "#/components/schemas/Team" }
+                      "items": { "$ref": "#/components/schemas/TeamWithRole" }
                     }
                   }
                 }
@@ -94,17 +94,7 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "team": {
-                      "allOf": [
-                        { "$ref": "#/components/schemas/Team" },
-                        {
-                          "type": "object",
-                          "properties": {
-                            "memberRole": { "type": "string" }
-                          }
-                        }
-                      ]
-                    }
+                    "team": { "$ref": "#/components/schemas/TeamAuth" }
                   }
                 }
               }
@@ -343,7 +333,7 @@
                   "type": "object",
                   "properties": {
                     "site": { "$ref": "#/components/schemas/Site" },
-                    "apiKey": { "type": "string", "description": "Full API key — save immediately, shown only once" }
+                    "apiKey": { "type": "string", "description": "Full API key -- save immediately, shown only once" }
                   }
                 }
               }
@@ -460,67 +450,6 @@
             }
           }
         }
-      },
-      "post": {
-        "operationId": "createKey",
-        "summary": "Create API key",
-        "description": "Create a new API key for a site. The full key is returned only once.",
-        "tags": ["Sites"],
-        "parameters": [
-          { "$ref": "#/components/parameters/teamSlug" },
-          { "$ref": "#/components/parameters/siteId" }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "label": { "type": "string", "description": "Optional label for this key" }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "API key created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "key": { "type": "string", "description": "Full API key — save immediately" },
-                    "prefix": { "type": "string" }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/teams/{teamSlug}/sites/{siteId}/keys/{keyId}": {
-      "delete": {
-        "operationId": "revokeKey",
-        "summary": "Revoke API key",
-        "description": "Revoke an API key. The SDK will no longer be able to send events with this key.",
-        "tags": ["Sites"],
-        "parameters": [
-          { "$ref": "#/components/parameters/teamSlug" },
-          { "$ref": "#/components/parameters/siteId" },
-          { "name": "keyId", "in": "path", "required": true, "schema": { "type": "string" } }
-        ],
-        "responses": {
-          "200": {
-            "description": "Key revoked",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/OkResponse" }
-              }
-            }
-          }
-        }
       }
     },
     "/api/v1/events": {
@@ -596,11 +525,11 @@
       "get": {
         "operationId": "trackPixel",
         "summary": "Tracking pixel",
-        "description": "Returns a 1x1 transparent GIF and records a pageview. For non-JS environments (curl, bots, server-side).",
+        "description": "Returns a 1x1 transparent GIF and records a pageview. For non-JS environments (curl, bots, server-side). If the `k` parameter is omitted, the GIF is returned without tracking.",
         "tags": ["Events"],
         "security": [{ "apiKeyQuery": [] }],
         "parameters": [
-          { "name": "k", "in": "query", "required": true, "schema": { "type": "string" }, "description": "API key" },
+          { "name": "k", "in": "query", "required": false, "schema": { "type": "string" }, "description": "API key (optional -- if missing, returns GIF without tracking)" },
           { "name": "url", "in": "query", "schema": { "type": "string" }, "description": "Page URL (falls back to Referer header)" }
         ],
         "responses": {
@@ -753,12 +682,407 @@
         }
       }
     },
+    "/api/v1/stats": {
+      "get": {
+        "operationId": "dataGetStats",
+        "summary": "Get site stats",
+        "description": "Get aggregate stats for the site associated with the API key. Returns total visits, agent visits, unique agents, and AI readiness score.",
+        "tags": ["Data API"],
+        "security": [{ "apiKeyHeader": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/range" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Site stats",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "totalVisits": { "type": "number", "description": "Total visit count" },
+                    "agentVisits": { "type": "number", "description": "Number of agent visits" },
+                    "agentPercentage": { "type": "number", "description": "Percentage of visits from agents" },
+                    "uniqueAgents": { "type": "number", "description": "Number of unique agents detected" },
+                    "aiReadinessScore": { "type": "number", "description": "AI readiness score for the site" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/agents": {
+      "get": {
+        "operationId": "dataListAgents",
+        "summary": "List detected agents",
+        "description": "List all detected agents for the site associated with the API key. SQL aggregate values are returned as strings.",
+        "tags": ["Data API"],
+        "security": [{ "apiKeyHeader": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/range" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Agent list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": { "type": "string" },
+                      "visits": { "type": "string", "description": "SQL aggregate (string)" },
+                      "pagesCrawled": { "type": "string", "description": "SQL aggregate (string)" },
+                      "avgDwell": { "type": "string", "description": "SQL aggregate (string)" },
+                      "lastSeen": { "type": "string", "description": "Timestamp as string" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pages": {
+      "get": {
+        "operationId": "dataGetPages",
+        "summary": "Get page analytics",
+        "description": "Get per-page visit counts and agent breakdowns for the site associated with the API key. SQL aggregate values are returned as strings.",
+        "tags": ["Data API"],
+        "security": [{ "apiKeyHeader": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/range" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page analytics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "url": { "type": "string" },
+                      "totalViews": { "type": "string", "description": "SQL aggregate (string)" },
+                      "agentViews": { "type": "string", "description": "SQL aggregate (string)" },
+                      "agentPercentage": { "type": "string", "description": "SQL aggregate (string)" },
+                      "topAgent": { "type": "string", "nullable": true }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/elements": {
+      "get": {
+        "operationId": "dataGetElements",
+        "summary": "Get element interactions",
+        "description": "Get interaction data for tracked elements on a specific page. SQL aggregate values are returned as strings.",
+        "tags": ["Data API"],
+        "security": [{ "apiKeyHeader": [] }],
+        "parameters": [
+          { "name": "page", "in": "query", "required": true, "schema": { "type": "string" }, "description": "Page URL to filter by" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Element interaction data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "selector": { "type": "string" },
+                      "tag": { "type": "string" },
+                      "interactionCount": { "type": "string", "description": "SQL aggregate (string)" },
+                      "avgDwell": { "type": "string", "description": "SQL aggregate (string)" },
+                      "trustedPercentage": { "type": "string", "description": "SQL aggregate (string)" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/visitors": {
+      "get": {
+        "operationId": "dataListVisitors",
+        "summary": "List visitors",
+        "description": "List all visitor sessions for the site associated with the API key.",
+        "tags": ["Data API"],
+        "security": [{ "apiKeyHeader": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/range" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Visitor list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "sessionId": { "type": "string" },
+                      "isAgent": { "type": "boolean" },
+                      "agentScore": { "type": "number" },
+                      "agentName": { "type": "string", "nullable": true },
+                      "pageCount": { "type": "number" },
+                      "firstSeen": { "type": "string" },
+                      "lastSeen": { "type": "string" },
+                      "classification": { "type": "string" },
+                      "interactionCount": { "type": "string", "description": "SQL subquery COUNT (string)" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/session/{sessionId}": {
+      "get": {
+        "operationId": "dataGetSession",
+        "summary": "Get session events",
+        "description": "Get all events for a specific session. Authenticated via API key.",
+        "tags": ["Data API"],
+        "security": [{ "apiKeyHeader": [] }],
+        "parameters": [
+          { "name": "sessionId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Session events",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "type": { "type": "string" },
+                      "url": { "type": "string" },
+                      "timestamp": { "type": "number", "description": "Epoch timestamp (converted to number)" },
+                      "payload": { "type": "string", "nullable": true, "description": "JSON-stringified payload or null" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/global/users": {
+      "get": {
+        "operationId": "adminListUsers",
+        "summary": "List all users",
+        "description": "List all users on the platform. Requires admin role.",
+        "tags": ["Global Admin"],
+        "responses": {
+          "200": {
+            "description": "User list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "users": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "string" },
+                          "name": { "type": "string" },
+                          "email": { "type": "string" },
+                          "role": { "type": "string" },
+                          "created_at": { "type": "string", "format": "date-time" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden -- not an admin"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/global/users/{userId}": {
+      "patch": {
+        "operationId": "adminUpdateUser",
+        "summary": "Update user role",
+        "description": "Change a user's global role. Requires admin role.",
+        "tags": ["Global Admin"],
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["role"],
+                "properties": {
+                  "role": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Role updated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OkResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden -- not an admin"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "adminDeleteUser",
+        "summary": "Delete user",
+        "description": "Delete a user from the platform. Requires admin role.",
+        "tags": ["Global Admin"],
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "User deleted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OkResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden -- not an admin"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/global/teams": {
+      "get": {
+        "operationId": "adminListTeams",
+        "summary": "List all teams",
+        "description": "List all teams on the platform with member and site counts. Requires admin role.",
+        "tags": ["Global Admin"],
+        "responses": {
+          "200": {
+            "description": "Team list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "teams": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "string" },
+                          "name": { "type": "string" },
+                          "slug": { "type": "string" },
+                          "created_at": { "type": "string", "format": "date-time" },
+                          "member_count": { "type": "string", "description": "SQL COUNT (string)" },
+                          "site_count": { "type": "string", "description": "SQL COUNT (string)" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden -- not an admin"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/global/teams/{teamId}": {
+      "delete": {
+        "operationId": "adminDeleteTeam",
+        "summary": "Delete team",
+        "description": "Delete a team and all associated data. Requires admin role.",
+        "tags": ["Global Admin"],
+        "parameters": [
+          { "name": "teamId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Team deleted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OkResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden -- not an admin"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/global/stats": {
+      "get": {
+        "operationId": "adminGetStats",
+        "summary": "Get platform stats",
+        "description": "Get aggregate platform stats. All values are converted to numbers. Requires admin role.",
+        "tags": ["Global Admin"],
+        "responses": {
+          "200": {
+            "description": "Platform stats",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "totalUsers": { "type": "number" },
+                    "totalTeams": { "type": "number" },
+                    "totalSites": { "type": "number" },
+                    "totalEvents": { "type": "number" }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden -- not an admin"
+          }
+        }
+      }
+    },
     "/api/v1/live": {
       "get": {
         "operationId": "liveEvents",
         "summary": "Live event stream",
         "description": "Server-Sent Events stream of real-time visitor activity. Connect with an EventSource client.",
         "tags": ["Real-Time"],
+        "security": [],
         "parameters": [
           { "name": "siteId", "in": "query", "required": true, "schema": { "type": "string" } }
         ],
@@ -883,21 +1207,43 @@
     "schemas": {
       "Team": {
         "type": "object",
+        "description": "Team as returned by createTeam",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "slug": { "type": "string" }
+        }
+      },
+      "TeamWithRole": {
+        "type": "object",
+        "description": "Team with the authenticated user's membership role (returned by listTeams)",
         "properties": {
           "id": { "type": "string" },
           "name": { "type": "string" },
           "slug": { "type": "string" },
-          "createdAt": { "type": "string", "format": "date-time" }
+          "role": { "type": "string", "description": "The authenticated user's role in this team" }
+        }
+      },
+      "TeamAuth": {
+        "type": "object",
+        "description": "Team identity from the teamAuth middleware (returned by getTeam)",
+        "properties": {
+          "teamId": { "type": "string" },
+          "teamSlug": { "type": "string" },
+          "memberRole": { "type": "string" }
         }
       },
       "Member": {
         "type": "object",
+        "description": "Team membership record with snake_case fields from the database",
         "properties": {
-          "userId": { "type": "string" },
-          "email": { "type": "string" },
-          "name": { "type": "string" },
+          "id": { "type": "string", "description": "Membership record ID" },
           "role": { "type": "string" },
-          "joinedAt": { "type": "string", "format": "date-time" }
+          "created_at": { "type": "string", "format": "date-time" },
+          "user_id": { "type": "string" },
+          "name": { "type": "string" },
+          "email": { "type": "string" },
+          "image": { "type": "string", "nullable": true }
         }
       },
       "Site": {
@@ -911,12 +1257,13 @@
       },
       "ApiKey": {
         "type": "object",
+        "description": "API key metadata with snake_case fields from the database",
         "properties": {
-          "id": { "type": "string" },
+          "id": { "type": "integer", "description": "Auto-incrementing SERIAL ID" },
           "prefix": { "type": "string", "description": "First 10 characters of the key" },
           "label": { "type": "string" },
-          "createdAt": { "type": "string", "format": "date-time" },
-          "revokedAt": { "type": "string", "format": "date-time", "nullable": true }
+          "created_at": { "type": "string", "format": "date-time" },
+          "revoked_at": { "type": "string", "format": "date-time", "nullable": true }
         }
       },
       "Classification": {
@@ -946,7 +1293,9 @@
     { "name": "Teams", "description": "Manage teams and members" },
     { "name": "Sites", "description": "Manage sites and API keys" },
     { "name": "Events", "description": "Event ingestion and tracking pixel" },
-    { "name": "Analytics", "description": "Query detection and traffic data" },
+    { "name": "Analytics", "description": "Query detection and traffic data (session auth, team-scoped)" },
+    { "name": "Data API", "description": "Programmatic access to site analytics via API key" },
+    { "name": "Global Admin", "description": "Platform administration (admin role required)" },
     { "name": "Real-Time", "description": "Live event streaming via SSE" },
     { "name": "Health", "description": "Server health and readiness checks" }
   ]

@@ -13,7 +13,7 @@ All endpoints are prefixed with `/api/v1`.
 
 ## Authentication
 
-The API uses two authentication methods depending on the endpoint:
+The API uses three authentication methods depending on the endpoint:
 
 ### Session auth (dashboard)
 
@@ -29,13 +29,23 @@ Used by the SDK to send events. Pass the API key as a header:
 X-Api-Key: ar_YOUR_API_KEY
 ```
 
-Or as a query parameter:
+Or as a query parameter for the tracking pixel:
 
 ```
-?apiKey=ar_YOUR_API_KEY
+GET /api/v1/pixel?k=ar_YOUR_API_KEY
 ```
 
-API keys are created per-site and can be revoked from the dashboard.
+API keys are created per-site and can be managed from the dashboard.
+
+### Data API (programmatic access)
+
+The Data API provides read-only access to site analytics using the same `X-Api-Key` header as SDK ingestion:
+
+```
+X-Api-Key: ar_YOUR_API_KEY
+```
+
+Data API endpoints (`/api/v1/stats`, `/api/v1/agents`, `/api/v1/pages`, `/api/v1/elements`, `/api/v1/visitors`, `/api/v1/session/:sessionId`) automatically scope all queries to the site that owns the API key. No team slug or site ID is needed in the URL.
 
 ## Endpoints
 
@@ -63,13 +73,28 @@ API keys are created per-site and can be revoked from the dashboard.
 
 ### Team-scoped routes
 
-Most endpoints are scoped to a team via the URL:
+Most management and analytics endpoints are scoped to a team via the URL:
 
 ```
 /api/v1/teams/:teamSlug/sites/:siteId/...
 ```
 
 Your session must have membership in the team. Some operations (update/delete team, manage roles) require owner or admin role.
+
+### Data API routes
+
+Data API endpoints use a flat URL structure without team or site parameters:
+
+```
+GET /api/v1/stats?range=168
+GET /api/v1/agents?range=24
+GET /api/v1/pages
+GET /api/v1/elements?page=https://example.com/pricing
+GET /api/v1/visitors
+GET /api/v1/session/:sessionId
+```
+
+The API key determines which site the data is scoped to. SQL aggregate values (counts, averages, percentages) are returned as strings from the Postgres driver in most Data API responses. The `/api/v1/stats` endpoint is an exception -- its values are converted to numbers.
 
 ### Error responses
 
@@ -86,18 +111,19 @@ Common status codes:
 
 | Code | Meaning |
 |---|---|
-| `400` | Bad request — missing or invalid parameters |
-| `401` | Unauthorized — missing or invalid auth |
-| `403` | Forbidden — insufficient permissions |
+| `400` | Bad request -- missing or invalid parameters |
+| `401` | Unauthorized -- missing or invalid auth |
+| `403` | Forbidden -- insufficient permissions |
 | `404` | Not found |
 | `500` | Server error |
 
 ### Analytics time ranges
 
-Analytics endpoints accept a `range` query parameter — the number of hours to include (default: `24`):
+Both team-scoped analytics endpoints and Data API endpoints accept a `range` query parameter -- the number of hours to include (default: `24`):
 
 ```
 GET /api/v1/teams/:teamSlug/analytics/:siteId/stats?range=168
+GET /api/v1/stats?range=168
 ```
 
 This returns data for the last 7 days.
